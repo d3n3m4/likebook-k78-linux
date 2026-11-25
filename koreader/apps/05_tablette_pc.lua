@@ -116,6 +116,7 @@ function K78Tablet:init()
     self.closed = false
 
     self.udp = socket.udp()
+    self.udp:setsockname("0.0.0.0", 0)
     self.udp:settimeout(0.15)
 
     self:computeLayout()
@@ -244,9 +245,12 @@ end
 function K78Tablet:pingHost()
     self.connected = false
     if not self.udp then return end
-    -- Drain any stale reply
+    -- Drain any stale reply (bounded + guards against empty string)
     self.udp:settimeout(0)
-    while self.udp:receive() do end
+    for _ = 1, 8 do
+        local d = self.udp:receive()
+        if not d or #d == 0 then break end
+    end
     self.udp:settimeout(0.12)
     self:sendUDP("K\004")
     local reply = self.udp:receive()
@@ -472,7 +476,7 @@ function K78Tablet:paintTo(bb, ox, oy)
 
     local st_txt = string.format(
         "%s  |  Cible : %s:%d  |  %s",
-        self.connected and "● CACHYOS CONNECTÉ" or "○ EN ATTENTE DE CACHYOS (vérifie USB/Wi-Fi)",
+        self.connected and "● PC LINUX CONNECTÉ" or "○ EN ATTENTE DU PC LINUX (vérifie USB/Wi-Fi)",
         self.target_ip, PORT,
         self.mode == "wacom"
             and (self.landscape and "Wacom 4096 + Inclinaison + Survol (tiens en PAYSAGE, boutons à gauche)"
@@ -509,7 +513,7 @@ function K78Tablet:paintTo(bb, ox, oy)
         bb:paintRect(sx, oy + pb.y + 3, 2, pb.h - 6, GRAY_MID)
         bb:paintRect(sx + 2, oy + pb.y + 3, self.scroll_w - 5, pb.h - 6, GRAY_BG)
         drawTextCentered(bb, self.font_sm, "MOLETTE", sx, oy + pb.y + math.floor(pb.h / 2) - 20, self.scroll_w, 40, GRAY_DARK)
-        drawTextCentered(bb, self.font_big, "TRACKPAD CACHYOS",
+        drawTextCentered(bb, self.font_big, "TRACKPAD PC LINUX",
             ox + pb.x, oy + pb.y + math.floor(pb.h / 2) - 35, pb.w - self.scroll_w, 50, GRAY_MID)
         drawTextCentered(bb, self.font_sm, "Glisser = curseur  •  1 tap = clic gauche  •  2 doigts = clic droit",
             ox + pb.x, oy + pb.y + math.floor(pb.h / 2) + 20, pb.w - self.scroll_w, 40, GRAY_MID)

@@ -52,6 +52,10 @@ ORIENT_NAMES = {2: "Paysage (USB-G)", 1: "Paysage (USB-D)", 0: "Portrait"}
 
 
 def load_encoder():
+    if not ENC_SO.is_file():
+        raise FileNotFoundError(
+            f"{ENC_SO} not found — run `make host` at the repository root first."
+        )
     lib = ctypes.CDLL(str(ENC_SO))
     lib.k78_encode_frame.restype = ctypes.c_size_t
     lib.k78_encode_frame.argtypes = [

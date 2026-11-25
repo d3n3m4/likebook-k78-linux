@@ -246,26 +246,64 @@ function Likebook:saveSettings()
 end
 
 function Likebook:setEventHandlers(UIManager)
+    local pending_power_action = nil
+    local reboot_pending = false
+
+    local function doSinglePowerAction()
+        pending_power_action = nil
+        if self.screen_saver_mode then
+            if self.screen_saver_lock then
+                UIManager.event_handlers.Suspend()
+            else
+                UIManager.event_handlers.Resume()
+            end
+        else
+            UIManager.event_handlers.Suspend()
+        end
+    end
+
     UIManager.event_handlers.Suspend = function()
+        if pending_power_action then
+            UIManager:unschedule(pending_power_action)
+            pending_power_action = nil
+        end
         self:onPowerEvent("Suspend")
     end
     UIManager.event_handlers.Resume = function()
         self:onPowerEvent("Resume")
     end
     UIManager.event_handlers.PowerPress = function()
+        if reboot_pending then return end
+        if pending_power_action then
+            -- Double-clic Power détecté (< 0.55 s) -> Redémarrage propre !
+            UIManager:unschedule(pending_power_action)
+            pending_power_action = nil
+            UIManager:unschedule(UIManager.poweroff_action)
+            reboot_pending = true
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{
+                text = "Double-clic Power : redémarrage du Likebook…",
+                timeout = 2,
+            })
+            UIManager:scheduleIn(0.35, function()
+                os.execute("sync")
+                self:reboot()
+            end)
+            return
+        end
         UIManager:scheduleIn(2.5, UIManager.poweroff_action)
     end
     UIManager.event_handlers.PowerRelease = function()
+        if reboot_pending then return end
         if not UIManager._entered_poweroff_stage then
             UIManager:unschedule(UIManager.poweroff_action)
-            if self.screen_saver_mode then
-                if self.screen_saver_lock then
-                    UIManager.event_handlers.Suspend()
-                else
-                    UIManager.event_handlers.Resume()
-                end
+            if self.screen_saver_mode and not self.screen_saver_lock then
+                -- Réveil immédiat sans délai quand on sort de veille
+                UIManager.event_handlers.Resume()
             else
-                UIManager.event_handlers.Suspend()
+                -- Attend 0.55 s pour détecter un éventuel 2e clic (= Redémarrer)
+                pending_power_action = doSinglePowerAction
+                UIManager:scheduleIn(0.55, pending_power_action)
             end
         end
     end
