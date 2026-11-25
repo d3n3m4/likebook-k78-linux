@@ -445,6 +445,10 @@ def main() -> None:
         os.chmod(root / "sbin/rk_reboot", 0o755)
         shutil.copy2(BIN_DIR / "k78_ebc_banner", root / "bin/k78_ebc_banner")
         os.chmod(root / "bin/k78_ebc_banner", 0o755)
+        if (BIN_DIR / "k78_upic_engine").exists():
+            (root / "usr/local/bin").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(BIN_DIR / "k78_upic_engine", root / "usr/local/bin/k78_upic_engine")
+            os.chmod(root / "usr/local/bin/k78_upic_engine", 0o755)
         if (BIN_DIR / "k78_tablet_sender").exists():
             (root / "usr/local/bin").mkdir(parents=True, exist_ok=True)
             shutil.copy2(BIN_DIR / "k78_tablet_sender", root / "usr/local/bin/k78_tablet_sender")

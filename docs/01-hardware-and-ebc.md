@@ -15,7 +15,7 @@ Technical reference for the **Boyue Likebook Ares Note K78 / K78W** running Pure
 | Buttons | Power / Back / Keys (`/dev/input/event2`, `/dev/input/event4`) | Back capacitive key + side power key |
 | Dual Frontlight | Cold + Warm PWM backlight | `/sys/class/backlight/rk28_bl/brightness` and `rk28_bl_warm/brightness` (`0..255`) |
 | Battery | Sysfs power supply | `/sys/class/power_supply/battery/{capacity,status}` |
-| Audio | **Wolfson WM8904** ALSA DAC (`48 kHz` stereo) | Exposed via standard ALSA `/dev/snd/pcmC0D0p` |
+| Audio | **Wolfson WM8904** ALSA DAC (`48 kHz` stereo) | Driven directly by `k78_upic_engine` via raw ALSA ioctls (`-nostdlib`) |
 | Wi-Fi / BT | AP6236 (`bcm43436b0`) / AP6255 | Firmware loaded from `/lib/firmware` (user-supplied from stock system) |
 | Recovery / Loader | Rockchip MaskROM / Loader (`2207:330a`) | Hold pinhole reset (left of USB-C) while plugging USB |
 

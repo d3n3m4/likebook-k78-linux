@@ -16,6 +16,7 @@ KO_LIBS = koreader/libs
 DEVICE_BINS = \
 	$(BIN_DIR)/k78_ebc_banner \
 	$(BIN_DIR)/k78_tablet_sender \
+	$(BIN_DIR)/k78_upic_engine \
 	$(BIN_DIR)/rk_reboot
 
 DEVICE_LIBS = \
@@ -40,6 +41,9 @@ $(BIN_DIR)/k78_ebc_banner: src/k78_ebc_banner.c | $(BIN_DIR)
 	$(CLANG) $(AARCH64_FLAGS) -static $< -o $@
 
 $(BIN_DIR)/k78_tablet_sender: src/k78_tablet_sender.c | $(BIN_DIR)
+	$(CLANG) $(AARCH64_FLAGS) -static $< -o $@
+
+$(BIN_DIR)/k78_upic_engine: src/k78_upic_engine.c | $(BIN_DIR)
 	$(CLANG) $(AARCH64_FLAGS) -static $< -o $@
 
 $(BIN_DIR)/rk_reboot: src/rk_reboot.c | $(BIN_DIR)

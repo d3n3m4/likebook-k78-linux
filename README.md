@@ -1,12 +1,13 @@
-# Likebook Ares Note K78W — Pure Linux, 85 Hz E-Ink Monitor, Wacom Tablet & Infinite Whiteboard
+# Likebook Ares Note K78W — Pure Linux, 85 Hz E-Ink Monitor, Wacom Tablet & Xenakis UPIC Synth
 
-A **Pure Linux** (Alpine ARM64 + native KOReader) environment for the **Boyue Likebook Ares Note K78 / K78W** (`Rockchip RK3368`, 7.8" 1872×1404 E-Ink + 4096-level Wacom EMR stylus) — **no Android userspace, no Google services**, booted non-destructively from microSD or a persistent Linux rootfs.
+A **Pure Linux** (Alpine ARM64 + native KOReader) environment for the **Boyue Likebook Ares Note K78 / K78W** (`Rockchip RK3368`, 7.8" 1872×1404 E-Ink + 4096-level Wacom EMR stylus + Wolfson WM8904 48 kHz DAC) — **no Android userspace, no Google services**, booted non-destructively from microSD or a persistent Linux rootfs.
 
 Beyond ultra-fast reading and note-taking, it turns the K78W into:
 1. An **85 Hz Mini-Cintiq / 2nd E-Ink Linux Monitor** (native Wayland/PipeWire ScreenCast + sub-1.2 ms x86_64 encoder + simultaneous 120 Hz Wacom stylus return over USB RNDIS).
 2. A **Native Linux Wacom Graphics Tablet + Trackpad + E-Ink ExpressKeys** (`uinput`, 4096-level pressure, tilt, hover — zero firewall configuration).
 3. An **85 Hz Infinite Whiteboard** with palm/finger panning and clean **vector SVG export**.
-4. A standalone **Boyue `.note` → PDF `/Ink` converter** for stock Android users.
+4. A **Standalone Real-Time Polyphonic Xenakis UPIC / GENDYN Graphic Synthesizer** (`k78_upic_engine.c` in freestanding AArch64 `-nostdlib`), played directly by drawing sound arcs with the Wacom stylus & contactless hover Theremin on E-Ink.
+5. A standalone **Boyue `.note` → PDF `/Ink` converter** for stock Android users.
 
 > **Disclaimer**: Independent hardware preservation and interoperability project for user-owned equipment. This repository contains **zero Boyue/Rockchip proprietary firmware binaries, kernel images, Wi-Fi blobs, prebuilt binaries, or SSH keys**. Users extract stock partitions (`boot.img`, `parameter.img`, `wbf.img`, `resource.img`, `recovery.img`, and Wi-Fi firmware) from their own device.
 
@@ -21,6 +22,7 @@ Beyond ultra-fast reading and note-taking, it turns the K78W into:
 | **K78-SCREEN (85 Hz Monitor)** | Wayland Portal/PipeWire/GStreamer + `k78_enc_x64.c` (< 1.2 ms) + `k78_stream_neon.c` | Bayer 4×4 85 Hz / Crisp Text 85 Hz / Auto-HQ 16-gray + XOR-delta PackBits RLE over TCP `19781` (USB RNDIS `< 1 ms` or Wi-Fi), with live Wacom stylus input back to the host. |
 | **K78-TABLET (`uinput`)** | Freestanding AArch64 `k78_tablet_sender.c` (~5 KB) + `k78_tablet_host.py` | Exposes 3 virtual Linux devices: Wacom Tablet (4096 pressure, tilt X/Y, hover, eraser), relative Trackpad, and E-Ink ExpressKeys. Outbound USB TCP `19782` (zero firewall rules) + optional Wi-Fi UDP `19780`. |
 | **K78-BOARD** | `07_tableau_blanc.lua` | 85 Hz infinite canvas: Wacom pen draws (pressure + calligraphic tilt, shapes, eraser), finger pans cleanly with zero accidental marks, exports cropped vector SVG. |
+| **K78-UPIC** | Freestanding AArch64 `k78_upic_engine.c` (`-nostdlib`, ALSA WM8904 48 kHz) + `03_xenakis_upic.lua` | Real-time graphic synthesizer inspired by Iannis Xenakis's UPIC: draw frequency arcs & waveforms with Wacom 4096-level pressure, contactless hover Theremin, stochastic GENDYN, spatial echo, and 48 kHz WAV export. |
 | **Boyue `.note` Converter** | Pure Python + PyMuPDF (`tools/boyue_notes/`) | Decodes Boyue's proprietary LEB128 `.note` format (stock Android, no root) into standard PDF `/Ink` annotations readable by Okular, Zotero, Acrobat, etc. |
 
 ---
@@ -28,19 +30,20 @@ Beyond ultra-fast reading and note-taking, it turns the K78W into:
 ## Repository Layout
 
 ```text
-├── Makefile                    # Cross-compiles all 5 freestanding AArch64 targets + x86_64 host encoder
+├── Makefile                    # Cross-compiles all 6 freestanding AArch64 targets + x86_64 host encoder
 ├── src/
 │   ├── k78_ebc_banner.c        # Freestanding AArch64 /dev/ebc boot/rescue splash banner
 │   ├── k78_ebc_neon.c          # AArch64 NEON 8-bit -> 5-bit even EBC converter (libk78ebc.so)
 │   ├── k78_enc_x64.c           # x86_64 <1.2 ms E-Ink Bayer/Text/HQ + XOR-delta PackBits encoder
 │   ├── k78_stream_neon.c       # AArch64 freestanding stream decoder (libk78stream.so)
 │   ├── k78_tablet_sender.c     # 120 Hz freestanding Wacom/Trackpad/ExpressKeys TCP streamer
+│   ├── k78_upic_engine.c       # Freestanding AArch64 polyphonic Xenakis UPIC/GENDYN audio engine
 │   └── rk_reboot.c             # Rockchip reboot-reason helper (loader/recovery/poweroff)
 ├── koreader/
 │   ├── ffi/                    # Reverse-engineered /dev/ebc FFI definitions & 85 Hz framebuffer
 │   ├── frontend/device/likebook/ # Native KOReader K78W device & dual-frontlight powerd drivers
 │   ├── plugins/k78tools.koplugin/ # Quick toolbar: E-Ink mode, frontlight, Wi-Fi, Syncthing, Apps, Sleep
-│   └── apps/                   # 05_tablette_pc, 06_ecran_eink, 07_tableau_blanc
+│   └── apps/                   # 03_xenakis_upic, 05_tablette_pc, 06_ecran_eink, 07_tableau_blanc
 ├── build/
 │   ├── build_boot_linux.py     # Stage-1 Alpine initramfs + Rockchip SHA-1 signed boot_linux.img
 │   ├── build_boot_linux_stage2.py # Stage-2 switch_root image with automatic USB/SSH rescue fallback
@@ -62,12 +65,12 @@ Beyond ultra-fast reading and note-taking, it turns the K78W into:
 
 ## Building the Native Binaries
 
-All 5 AArch64 device binaries are **freestanding (`-nostdlib`)** — no ARM64 cross-libc sysroot is required, only `clang`, `lld`, and a host C compiler (`gcc` or `clang`):
+All 6 AArch64 device binaries are **freestanding (`-nostdlib`)** — no ARM64 cross-libc sysroot is required, only `clang`, `lld`, and a host C compiler (`gcc` or `clang`):
 
 ```bash
 make all       # Builds bin/* (device + host encoder) and koreader/libs/*.so
 # Or individually:
-make device    # 3 AArch64 static executables + 2 AArch64 NEON shared libraries
+make device    # 4 AArch64 static executables + 2 AArch64 NEON shared libraries
 make host      # bin/libk78enc_x64.so (x86_64 host display encoder)
 ```
 
