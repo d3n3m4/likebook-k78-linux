@@ -1,0 +1,41 @@
+#!/bin/sh
+# Cleanly reset RK3368 dwc_otg USB RNDIS gadget + dnsmasq (used after suspend/resume or manual reset).
+G=/config/usb_gadget/g1
+[ -d "$G" ] || exit 0
+UDC=$(ls /sys/class/udc 2>/dev/null | head -n1)
+[ -n "$UDC" ] || exit 0
+
+echo "" > "$G/UDC" 2>/dev/null || true
+sleep 0.3
+echo "$UDC" > "$G/UDC" 2>/dev/null || true
+sleep 0.5
+
+USB_IF=""
+[ -r "$G/functions/rndis.gs4/ifname" ] && USB_IF=$(cat "$G/functions/rndis.gs4/ifname" 2>/dev/null)
+if [ -z "$USB_IF" ]; then
+    for n in /sys/class/net/*; do
+        b=$(basename "$n")
+        case "$b" in usb*|rndis*) USB_IF="$b"; break ;; esac
+    done
+fi
+[ -n "$USB_IF" ] || exit 0
+
+ip addr flush dev "$USB_IF" 2>/dev/null || true
+ip addr add 192.168.7.2/24 dev "$USB_IF" 2>/dev/null || true
+ip link set "$USB_IF" up 2>/dev/null || true
+
+killall dnsmasq 2>/dev/null || true
+sleep 0.2
+/usr/sbin/dnsmasq \
+    --conf-file=/dev/null \
+    --user=root \
+    --interface="$USB_IF" \
+    --except-interface=lo \
+    --bind-interfaces \
+    --port=0 \
+    --dhcp-range=192.168.7.10,192.168.7.20,255.255.255.0,12h \
+    --dhcp-option=3 \
+    --dhcp-option=6 \
+    --dhcp-leasefile=/tmp/dnsmasq.leases \
+    --pid-file=/run/dnsmasq.pid \
+    --log-facility=/tmp/dnsmasq.log

@@ -1,0 +1,12 @@
+[Unit]
+Description=Likebook K78W Wacom Graphics Tablet, Trackpad & ExpressKeys Receiver
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/likebook-k78-linux/host/k78_tablet_host.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
